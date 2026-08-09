@@ -255,3 +255,5 @@ The username or password in `DATABASE_URL` doesn't match a real role on your Pos
 
 **Login or register throws instead of returning a token**
 Check that `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are actually set in your `.env` — `jsonwebtoken` throws if the signing secret is `undefined`, and this project doesn't validate environment variables on startup.
+#   P H - H e a l t h C a r e - S e r v i c e - B a c k e n d  
+ 
