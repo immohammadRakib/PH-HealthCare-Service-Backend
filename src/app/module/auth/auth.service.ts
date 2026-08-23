@@ -7,7 +7,10 @@ import {
 } from "../../../generated/prisma/enums";
 import config from "../../config";
 import crypto from "crypto";
+import path from "path";
+import ejs from "ejs";
 import { prisma } from "../../lib/prisma";
+import { transporter } from "../../lib/nodemailer";
 import { jwtUtils } from "../../utils/jwt";
 import type {
   IGoogleLogin,
