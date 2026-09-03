@@ -2,6 +2,7 @@ model Customer {
   id            String         @id @default(uuid(7))
   accountNumber String         @unique
   meterNumber   String         @unique
+  contactNumber String?        @unique
   billingAddress String?
   
   // 📍 গ্রিড হায়ারার্কি রিলেশন

@@ -18,7 +18,8 @@ model Outage {
 
 model OutageReport {
   id           String       @id @default(uuid(7))
-  description  String      
+  description  String    
+  proofImage   String?  
   status       OutageStatus @default(PENDING) // TicketStatus পরিবর্তন করে OutageStatus করা হলো
   
   customerId   String
