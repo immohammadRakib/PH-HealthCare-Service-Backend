@@ -1,8 +1,10 @@
 enum Role {
   SUPER_ADMIN
   ADMIN
-  DOCTOR
-  PATIENT
+  ZONE_MANAGER
+  POWER_OPERATOR
+  TECHNICIAN
+  CUSTOMER
 }
 
 enum UserStatus {
@@ -20,4 +22,31 @@ enum Gender {
 enum AuthProvider {
   GOOGLE
   CREDENTIAL
+}
+
+enum AreaPriority {
+  CRITICAL_HOSPITAL  
+  HIGH_VIP          
+  MEDIUM_COMMERCIAL 
+  LOW_RESIDENTIAL    
+}
+
+enum OutageType {
+  SCHEDULED
+  UNEXPECTED
+}
+
+enum OutageStatus {
+  PENDING  
+  PLANNED     
+  ACTIVE        
+  ASSIGNED     
+  REPAIRING     
+  RESTORED      
+}
+
+enum TechnicianStatus {
+  AVAILABLE
+  ON_DUTY
+  OFFLINE
 }

@@ -1,0 +1,18 @@
+model Area {
+  id           String       @id @default(uuid(7))
+  name         String       
+  priority     AreaPriority @default(LOW_RESIDENTIAL) // এখানে AreaPriority ও সঠিক ডিফল্ট ভ্যালু দেওয়া হলো
+  postalCode   String?
+  
+  feederId     String
+  feeder       Feeder       @relation(fields: [feederId], references: [id], onDelete: Cascade)
+
+  customers    Customer[]
+  outages      Outage[]
+
+  isDeleted    Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("areas")
+}

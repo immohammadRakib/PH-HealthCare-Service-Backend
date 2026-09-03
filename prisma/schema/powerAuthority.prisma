@@ -1,0 +1,12 @@
+model PowerAuthority {
+  id        String          @id @default(uuid(7))
+  name      String          @unique 
+  code      String          @unique 
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  
+  admins    AdminProfile[]
+  zones     DistributionZone[]
+
+  @@map("power_authorities")
+}

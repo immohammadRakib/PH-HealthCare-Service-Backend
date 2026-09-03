@@ -1,0 +1,19 @@
+model Substation {
+  id           String         @id @default(uuid(7))
+  name         String         // e.g., "Kalyanpur Substation"
+  capacity     String         // e.g., "30/36 MVA"
+  
+  zoneId       String
+  zone         DistributionZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  feeders      Feeder[]
+  
+  // 👤 বিপরীত রিলেশন লিঙ্ক (যা মিসিং ছিল)
+  operators    PowerOperator[] 
+
+  isDeleted    Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("substations")
+}

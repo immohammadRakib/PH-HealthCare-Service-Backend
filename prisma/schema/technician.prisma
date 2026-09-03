@@ -1,0 +1,20 @@
+model Technician {
+  id           String           @id @default(uuid(7))
+  status       TechnicianStatus @default(AVAILABLE)
+  specialization String?        // e.g., "Transformer Repair", "Line Maintenance"
+  
+  zoneId       String
+  zone         DistributionZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  userId       String           @unique
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  assignments  OutageReport[]
+
+  isDeleted    Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([status], name: "idx_technician_status")
+  @@map("technicians")
+}

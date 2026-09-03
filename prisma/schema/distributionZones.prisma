@@ -1,0 +1,19 @@
+model DistributionZone {
+  id               String         @id @default(uuid(7))
+  name             String         @unique // e.g., "Dhaka North"
+  code             String         @unique // e.g., "DN-01"
+  
+  // 🏢 পাওয়ার অথরিটির সাথে রিলেশন (যা মিসিং ছিল)
+  powerAuthorityId String
+  powerAuthority   PowerAuthority @relation(fields: [powerAuthorityId], references: [id], onDelete: Cascade)
+
+  // 🛰️ সাবস্টেশন ও টেকনিশিয়ান রিলেশন
+  substations      Substation[]   // এখানে নিশ্চিত করো নাম 'Substation' (একক বচন) আছে
+  technicians      Technician[]
+  zoneManager      ZoneManager?
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("distribution_zones")
+}
