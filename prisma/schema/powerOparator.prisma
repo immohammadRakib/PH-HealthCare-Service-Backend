@@ -2,8 +2,9 @@ model PowerOperator {
   id           String      @id @default(uuid(7))
   shift        String?     
   
-  substationId String
-  substation   Substation  @relation(fields: [substationId], references: [id], onDelete: Cascade) // s বাদ দেওয়া হলো
+  // ⚡ আইডি এবং রিলেশন অপtional করা হলো
+  substationId String?
+  substation   Substation? @relation(fields: [substationId], references: [id], onDelete: Cascade)
 
   userId       String      @unique
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)

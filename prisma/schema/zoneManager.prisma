@@ -1,16 +1,17 @@
 model ZoneManager {
-  id        String           @id @default(uuid(7))
+  id           String            @id @default(uuid(7))
   officeRoomNo String?
   
-  zoneId    String           @unique
-  zone      DistributionZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  // 📍 আইডি এবং রিলেশন অপtional করা হলো
+  zoneId       String?           @unique
+  zone         DistributionZone? @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
-  userId    String           @unique
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  isDeleted Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  isDeleted    Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@map("zone_managers")
 }

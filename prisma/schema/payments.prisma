@@ -1,0 +1,16 @@
+model Payment {
+  id            String   @id @default(uuid(7))
+  amount        Float
+  transactionId String   @unique // bKash/Stripe থেকে আসা ইউনিক ট্রানজেকশন ID
+  status        String   @default("PENDING") // PENDING, SUCCESS, FAILED, CANCELLED
+  provider      String   // e.g., "BKASH", "STRIPE"
+  
+  // 🔗 কাস্টমারের সাথে সম্পর্ক
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payments")
+}

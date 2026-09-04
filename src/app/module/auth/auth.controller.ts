@@ -6,10 +6,10 @@ import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
-	const payload = req.body;
-	const result = await AuthService.registerPatient(payload);
+		const payload = req.body;
+		const result = await AuthService.registerUser(payload);
 
-	const { accessToken, refreshToken, user, patient } = result;
+		const { accessToken, refreshToken, user, profile } = result;
 
 	res.cookie("accessToken", accessToken, {
 		httpOnly: true,
@@ -27,12 +27,12 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "Patient registered successfully",
+		message: "User registered successfully",
 		data: {
 			accessToken,
 			refreshToken,
 			user,
-			patient,
+			profile
 		},
 	});
 });
@@ -41,9 +41,9 @@ const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
 
 	const payload = req.body;
 	
-	const result = await AuthService.verifyPatientEmail(payload);
+	const result = await AuthService.verifyEmail(payload);
 
-	const { accessToken, refreshToken, user, patient } = result;
+	const { accessToken, refreshToken, user, profile } = result;
 
 	res.cookie("accessToken", accessToken, {
 		httpOnly: true,
@@ -66,7 +66,7 @@ const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
 			accessToken,
 			refreshToken,
 			user,
-			patient
+			profile
 		}
 	});
 });

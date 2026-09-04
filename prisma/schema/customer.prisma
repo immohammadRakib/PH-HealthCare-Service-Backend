@@ -1,27 +1,24 @@
 model Customer {
-  id            String         @id @default(uuid(7))
-  accountNumber String         @unique
-  meterNumber   String         @unique
-  contactNumber String?        @unique
+  id            String    @id @default(uuid(7))
+  accountNumber String    @unique
+  meterNumber   String    @unique
+  balance       Float     @default(0.0)
   billingAddress String?
   
-  // 📍 গ্রিড হায়ারার্কি রিলেশন
-  areaId        String 
-  area          Area           @relation(fields: [areaId], references: [id]) 
+  // 📍 আইডি এবং রিলেশন অপtional করা হলো
+  areaId        String? 
+  area          Area?     @relation(fields: [areaId], references: [id]) 
 
-  // 👤 মূল ইউজারের সাথে রিলেশন
-  userId        String         @unique
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 🚨 বিপরীত রিলেশন লিঙ্ক (যা মিসিং ছিল)
   reports       OutageReport[]
+  payments      Payment[]
 
-  isDeleted     Boolean        @default(false)
-  deletedAt     DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  isDeleted     Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  @@index([isDeleted], name: "idx_customer_isDeleted")
-  @@index([accountNumber], name: "idx_customer_accountNumber")
+  @@index([isDeleted])
   @@map("customers")
 }

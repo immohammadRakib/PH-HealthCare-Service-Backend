@@ -4,7 +4,7 @@ model User {
   email              String           @unique 
   phone              String?          
   gender             Gender? 
-  address            String
+  address            String?
   profileImage       String?          
   password           String?
   googleId           String?          @unique
