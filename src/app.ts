@@ -9,6 +9,7 @@ import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { OutageRoutes } from "./app/module/outage/outage.route";
 import { GridRoutes } from "./app/module/grid/grid.route";
+import { WalletRoutes } from "./app/module/wallet/wallet.route";
 
 const app: Application = express();
 
@@ -29,6 +30,8 @@ app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
 
 app.use("/api/v1/outage", OutageRoutes);
+
+app.use('/api/v1/wallet', WalletRoutes);
 
 app.use('/api/v1/grid', GridRoutes);
 
