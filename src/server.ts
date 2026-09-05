@@ -35,3 +35,5 @@ const main = async () => {
 };
 
 main();
+
+export default app;
