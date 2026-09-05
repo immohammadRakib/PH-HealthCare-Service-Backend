@@ -32,7 +32,7 @@
 			},
 			"style": {
 				"noNonNullAssertion": "info",
-				"useNodejsImportProtocol": "info"
+				"useNodejsImportProtocol": "info",
 			}
 		},
 		"includes": [
