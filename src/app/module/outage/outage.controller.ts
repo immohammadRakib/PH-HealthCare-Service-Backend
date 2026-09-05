@@ -66,8 +66,28 @@ const getMyAreaLiveStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+const assignTechnicianManually = catchAsync(async (req: Request, res: Response) => {
+  const { reportId, technicianId } = req.body;
+
+  if (!reportId || !technicianId) {
+    throw new Error("reportId and technicianId are required in request body!");
+  }
+
+  const result = await OutageService.assignTechnicianManually(reportId, technicianId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Technician has been successfully assigned to the outage ticket manually.",
+    data: result,
+  });
+});
+
+
 export const OutageController = {
   reportUnexpectedOutage,
   resolveOutageJob,
   getMyAreaLiveStatus,
+  assignTechnicianManually
 };

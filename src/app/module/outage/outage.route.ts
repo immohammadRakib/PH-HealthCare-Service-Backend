@@ -27,4 +27,11 @@ router.get(
   OutageController.getMyAreaLiveStatus
 );
 
+
+router.patch(
+  "/assign-technician",
+  auth(Role.ZONE_MANAGER, Role.ADMIN, Role.SUPER_ADMIN),
+  OutageController.assignTechnicianManually
+);
+
 export const OutageRoutes = router;

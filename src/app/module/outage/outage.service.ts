@@ -205,8 +205,47 @@ const getActiveOutageByArea = async (areaId: string) => {
   return result;
 };
 
+
+
+
+const assignTechnicianManually = async (reportId: string, technicianId: string) => {
+  return await prisma.$transaction(async (tx) => {
+    
+    // ১. চেক করা—টেকনিশিয়ানটি আসলেই সিস্টেমে আছে এবং AVAILABLE কি না
+    const technician = await tx.technician.findUnique({
+      where: { id: technicianId },
+    });
+
+    if (!technician) {
+      throw new Error("Selected Technician profile not found!");
+    }
+
+    if (technician.status !== TechnicianStatus.AVAILABLE) {
+      throw new Error("This technician is currently ON_DUTY or OFFLINE. Cannot assign!");
+    }
+
+    // ২. কাস্টমারের কমপ্লেন রিপোর্টের স্ট্যাটাস ASSIGNED করা এবং টেকনিশিয়ান আইডি লিঙ্ক করা
+    const updatedReport = await tx.outageReport.update({
+      where: { id: reportId },
+      data: {
+        status: OutageStatus.ASSIGNED,
+        technicianId: technicianId,
+      },
+    });
+
+    // ৩. টেকনিশিয়ানকে সাথে সাথে বুক করে ফেলা (ON_DUTY) যেন সে অন্য কোনো কাজ না পায়
+    await tx.technician.update({
+      where: { id: technicianId },
+      data: { status: TechnicianStatus.ON_DUTY },
+    });
+
+    return updatedReport;
+  });
+};
+
 export const OutageService = {
   reportUnexpectedOutage,
   resolveOutageJob,
   getActiveOutageByArea,
+  assignTechnicianManually,
 };
