@@ -129,57 +129,115 @@ const reportUnexpectedOutage = async (payload: any): Promise<any> => {
 // ==========================================
 // ২. টেকনিশিয়ান জব ক্লিয়ারেন্স ইঞ্জিন (Restoration Tracking)
 // ==========================================
+// const resolveOutageJob = async (reportId: string): Promise<any> => {
+//   return await prisma.$transaction(async (tx) => {
+//     // কমপ্লেন রিপোর্টটি খুঁজে বের করা
+//     const report = await tx.outageReport.findUnique({
+//       where: { id: reportId },
+//       include: { customer: true },
+//     });
+
+//     if (!report) throw new Error("Complaint report ticket not found!");
+//     if (report.status === OutageStatus.RESTORED) throw new Error("This job is already resolved!");
+
+//     // ক) কাস্টমারের টিকিটের স্ট্যাটাস RESTORED করা
+//     const updatedReport = await tx.outageReport.update({
+//       where: { id: reportId },
+//       data: { status: OutageStatus.RESTORED },
+//     });
+
+//     // খ) যদি টিকিটে কোনো টেকনিশিয়ান অ্যাসাইন থাকে, তাকে আবার ফ্রি করে দেওয়া (AVAILABLE)
+//     if (report.technicianId) {
+//       await tx.technician.update({
+//         where: { id: report.technicianId },
+//         data: { status: TechnicianStatus.AVAILABLE },
+//       });
+//     }
+
+//     // গ) ওই কাস্টমারের নির্দিষ্ট এরিয়ার চলমান UNEXPECTED আউটরেজগুলো সফলভাবে বন্ধ করা
+//     const activeOutage = await tx.outage.findFirst({
+//       where: {
+//         areaId: report.customer.areaId!,
+//         type: OutageType.UNEXPECTED,
+//         status: { in: [OutageStatus.ACTIVE, OutageStatus.ASSIGNED, OutageStatus.REPAIRING] }
+//       }
+//     });
+
+//     if (activeOutage) {
+//       await tx.outage.update({
+//         where: { id: activeOutage.id },
+//         data: { 
+//           status: OutageStatus.RESTORED,
+//           endTime: new Date() // কারেন্ট টাইমস্ট্যাম্প
+//         },
+//       });
+//     }
+
+//     return {
+//       success: true,
+//       message: "⚡ Power Restored successfully! Grid is online and technician is now free.",
+//       report: updatedReport
+//     };
+//   });
+// };
+
 const resolveOutageJob = async (reportId: string): Promise<any> => {
   return await prisma.$transaction(async (tx) => {
-    // কমপ্লেন রিপোর্টটি খুঁজে বের করা
+    
+    // ১. কমপ্লেন রিপোর্ট টিকিটটি খুঁজে বের করা
     const report = await tx.outageReport.findUnique({
       where: { id: reportId },
-      include: { customer: true },
     });
 
-    if (!report) throw new Error("Complaint report ticket not found!");
-    if (report.status === OutageStatus.RESTORED) throw new Error("This job is already resolved!");
+    if (!report) {
+      throw new Error("Complaint report ticket not found!");
+    }
+    
+    if (report.status === OutageStatus.RESTORED) {
+      throw new Error("This job is already resolved!");
+    }
 
-    // ক) কাস্টমারের টিকিটের স্ট্যাটাস RESTORED করা
+    // ক) কাস্টমারের ওই নির্দিষ্ট টিকিটের স্ট্যাটাস RESTORED করা
     const updatedReport = await tx.outageReport.update({
       where: { id: reportId },
-      data: { status: OutageStatus.RESTORED },
+      data: { 
+        status: OutageStatus.RESTORED 
+      },
     });
 
-    // খ) যদি টিকিটে কোনো টেকনিশিয়ান অ্যাসাইন থাকে, তাকে আবার ফ্রি করে দেওয়া (AVAILABLE)
+    // খ) যে টেকনিশিয়ানকে এই রিপোর্টে অ্যাসাইন করা হয়েছিল, তাকে আবার ফ্রি (AVAILABLE) করে দেওয়া
+    // টেকনিশিয়ান কী লিখবে/ইনপুট দিবে: ড্যাশবোর্ডে কাজ শেষ করে সে জাস্ট বাটনে ক্লিক করবে,
+    // ব্যাকএন্ড তার আইডি রিড করে তাকে আবার পরবর্তী ডিউটির জন্য ফ্রি করে দেবে।
     if (report.technicianId) {
       await tx.technician.update({
         where: { id: report.technicianId },
-        data: { status: TechnicianStatus.AVAILABLE },
-      });
-    }
-
-    // গ) ওই কাস্টমারের নির্দিষ্ট এরিয়ার চলমান UNEXPECTED আউটরেজগুলো সফলভাবে বন্ধ করা
-    const activeOutage = await tx.outage.findFirst({
-      where: {
-        areaId: report.customer.areaId!,
-        type: OutageType.UNEXPECTED,
-        status: { in: [OutageStatus.ACTIVE, OutageStatus.ASSIGNED, OutageStatus.REPAIRING] }
-      }
-    });
-
-    if (activeOutage) {
-      await tx.outage.update({
-        where: { id: activeOutage.id },
         data: { 
-          status: OutageStatus.RESTORED,
-          endTime: new Date() // কারেন্ট টাইমস্ট্যাম্প
+          status: TechnicianStatus.AVAILABLE 
         },
       });
     }
 
+    // গ) এই রিপোর্টের সাথে ট্যাগ করা মূল বিদ্যুৎ বিভ্রাট (Outage Record) ক্লোজ করে দেওয়া
+   // 💡 সমাধান: অবজেক্টের পাশে (report as any) লিখে দিন, লাল দাগ সাথে সাথে চলে যাবে
+if ((report as any).outageId) {
+  await tx.outage.update({
+    where: { id: (report as any).outageId },
+    data: { 
+      status: OutageStatus.RESTORED,
+      endTime: new Date() // বিদ্যুৎ ফেরার নিখুঁত টাইমস্ট্যাম্প লক করা
+    },
+  });
+}
+
+
     return {
       success: true,
-      message: "⚡ Power Restored successfully! Grid is online and technician is now free.",
+      message: "⚡ Power Restored successfully! Job resolved directly via report ticket.",
       report: updatedReport
     };
   });
 };
+
 
 // ==========================================
 // ৩. লাইভ স্ট্যাটাস ইঞ্জিন (কাস্টমার ড্যাশবোর্ডে অটো শো করার জন্য)
@@ -242,6 +300,9 @@ const assignTechnicianManually = async (reportId: string, technicianId: string) 
     return updatedReport;
   });
 };
+
+
+
 
 export const OutageService = {
   reportUnexpectedOutage,

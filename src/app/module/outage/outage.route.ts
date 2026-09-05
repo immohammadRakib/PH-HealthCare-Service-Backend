@@ -14,11 +14,17 @@ router.post(
 
 // ২. টেকনিশিয়ান মাঠে গিয়ে কাজ শেষ করে বিদ্যুৎ সচল করবে (Protected - Only TECHNICIAN)
 // এখানে রাউট প্যারামিটার হিসেবে :reportId পাস করা হয়েছে
-router.patch(
-  "/resolve/:reportId",
-  auth(Role.TECHNICIAN),
-  OutageController.resolveOutageJob
-);
+// router.patch(
+//   "/resolve/:reportId",
+//   auth(Role.TECHNICIAN),
+//   OutageController.resolveOutageJob
+// );
+
+// // টেকনিশিয়ান প্যানেলের ৩টি সলিড এপিআই (Only TECHNICIAN)
+// router.get("/my-assigned-jobs", auth(Role.TECHNICIAN), OutageController.getMyAssignedJobs);
+// router.patch("/start-repairing/:reportId", auth(Role.TECHNICIAN), OutageController.startRepairing);
+router.patch("/resolve/:reportId", auth(Role.TECHNICIAN), OutageController.resolveOutageJob);
+
 
 // ৩. কাস্টমার বা এডমিন যে কেউ তার এরিয়ার লাইভ বিদ্যুৎ পরিস্থিতি দেখবে (Protected/Public)
 router.get(

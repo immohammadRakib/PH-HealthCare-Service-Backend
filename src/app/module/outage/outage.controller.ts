@@ -33,19 +33,24 @@ const reportUnexpectedOutage = catchAsync(async (req: Request, res: Response) =>
 
 // ২. টেকনিশিয়ান জব ক্লিয়ারেন্স / বিদ্যুৎ সচল করার কন্ট্রোলার
 const resolveOutageJob = catchAsync(async (req: Request, res: Response) => {
-  // ⚡ assignmentId পরিবর্তন করে reportId (টিকিট আইডি) করা হলো
-  const { reportId } = req.params; 
+  // ⚡ রাউট প্যারামিটার থেকে reportId (টিকিট আইডি) স্ট্রিং হিসেবে নেওয়া হলো
+  const reportId = req.params.reportId as string; 
+
+  if (!reportId) {
+    throw new Error("reportId is required in route parameter!");
+  }
 
   // আমাদের আপডেটেড সার্ভিস লজিক অনুযায়ী আমরা সরাসরি reportId পাস করছি
-  const result = await OutageService.resolveOutageJob(reportId as string);
+  const result = await OutageService.resolveOutageJob(reportId);
 
   sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: 200,
     success: true,
-    message: result.message,
+    message: "⚡ Power grid supply restored and technician released successfully.",
     data: result,
   });
 });
+
 
 // ৩. লাইভ স্ট্যাটাস ইঞ্জিন (ড্যাশবোর্ডের জন্য)
 const getMyAreaLiveStatus = catchAsync(async (req: Request, res: Response) => {
