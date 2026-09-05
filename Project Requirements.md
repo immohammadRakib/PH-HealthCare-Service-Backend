@@ -1,176 +1,137 @@
-# Project Requirements — PH Healthcare System
+# Project Requirements — Smart Load Shedding & Power Outage Management System
 
 ## 1. Overview
 
-PH Healthcare System connects patients with doctors for online consultations. A patient finds a doctor, books an open slot on a published schedule, pays for it, and joins a video call at the scheduled time. The doctor runs the consultation and afterward sends back a digital prescription. Admins and super admins keep the platform running: they approve doctors, manage accounts, and handle the people side of the platform so doctors and patients only have to deal with appointments.
+The Smart Load Shedding & Power Outage Management System is an enterprise-grade utility automation platform built to orchestrate electricity distribution, track real-time power grid states, and manage infrastructure maintenance. The platform models a multi-tier national grid hierarchy (`Power Authority → Distribution Zone → Substation → Feeder → Area`) to balance supply deficits through automated, priority-based scheduling. Additionally, it provides real-time consumer anomaly diagnostic reporting and automated field technician dispatching for unexpected line faults (blackouts). 
 
-This document is the product spec — what the system must do and the exact rules it must follow. It is not the database schema and not the API design; those come next, and every rule below is written so that whoever designs them doesn't have to guess. The [README](./README.md) describes what's actually implemented in the code today, which is currently far behind this document.
+Admins and operational personnel keep the grid functioning smoothly: they manage the infrastructure nodes, execute manual emergency dispatches, and generate energy allocation schedules so that customers, field technicians, and substation operators interact seamlessly without manual operational friction.
 
-## 2. User roles
+This document is the official product specification detailing exactly what the system must do and the precise business rules it must follow. It is not the database schema and not the API design; those come next, and every rule below is written so that whoever designs them doesn't have to guess.
 
-Four roles exist: **Super Admin**, **Admin**, **Doctor**, **Patient**.
+---
 
-| Role           | How they join the platform                                                   | How they log in                  |
-| -------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
-| **Patient**    | Registers directly — email/password or Google                                  | Email/password or Google           |
-| **Doctor**     | Applies directly, then waits for an Admin or Super Admin to approve them       | Email/password only                |
-| **Admin**      | Created by a Super Admin or an existing Admin — cannot self-register           | Email/password only                |
-| **Super Admin**| Created by another Super Admin — cannot self-register                          | Email/password only                |
+## 2. User Roles
 
-Google login is a **patient-only** feature. Doctors, Admins, and Super Admins always use email and password.
+Five distinct roles orchestrate the platform: **Super Admin**, **Admin**, **Zone Manager**, **Power Operator**, and **Customer** (with an implicitly mapped **Technician** entity for maintenance).
 
-### 2.1 Who can manage whom
+| Role | Onboarding Mechanism | Primary Authentication Channel |
+| :--- | :--- | :--- |
+| **Customer** | Registers directly — email/password credentials or Google OAuth. | Email/password or Google OAuth. |
+| **Technician** | Onboarded exclusively by an Admin or Zone Manager — cannot self-register. | Email/password only. |
+| **Power Operator**| Created/Onboarded exclusively by an Admin or Super Admin — cannot self-register. | Email/password only. |
+| **Zone Manager** | Created/Onboarded exclusively by a Super Admin — cannot self-register. | Email/password only. |
+| **Admin** | Created by a Super Admin or an existing Admin — cannot self-register. | Email/password only. |
+| **Super Admin** | Created exclusively by another Super Admin — cannot self-register. | Email/password only. |
 
-Admin and Super Admin have the same day-to-day powers — approving doctors, managing patients, creating new admins — with two exceptions reserved for Super Admin:
+Google login is a **customer-only** feature. All administrative, operational, and field technical personnel always use email and password credentials.
 
-| Action                              | Admin | Super Admin |
-| ------------------------------------ | :---: | :----------: |
-| Approve or reject a doctor application | ✅    | ✅           |
-| Block or unblock a Doctor             | ✅    | ✅           |
-| Block or unblock a Patient            | ✅    | ✅           |
-| Create a new Admin                    | ✅    | ✅           |
-| Create a new Super Admin              | ❌    | ✅           |
-| Block or unblock an Admin             | ❌    | ✅           |
-| Block or unblock a Super Admin        | ❌    | ✅           |
+### 2.1 Who Can Manage Whom
 
-In short: Admin can act on doctors and patients freely, but only a Super Admin can act on another Admin or Super Admin — including blocking one.
+Admin and Super Admin have the same day-to-day powers — managing infrastructure, auditing substation logs, blocking problematic accounts — with structural exceptions reserved exclusively for the Super Admin:
 
-These actions live behind three management screens: **Doctor Management** (approve/reject applications, block/unblock doctors), **Patient Management** (block/unblock patients), and **Admin Management** (create and, where allowed, block admins and super admins).
+| Action | Admin | Super Admin |
+| :--- | :---: | :---: |
+| Onboard or offboard a Field Technician | ✅ | ✅ |
+| Assign or change a Power Operator's designated Substation | ✅ | ✅ |
+| Block or unblock a Customer Account | ✅ | ✅ |
+| Create a new Admin Account | ✅ | ✅ |
+| Create or promote a user to a Super Admin | ❌ | ✅ |
+| Block or unblock a structural Admin | ❌ | ✅ |
+| Block, unblock, or delete a fellow Super Admin | ❌ | ✅ |
 
-## 3. Accounts and authentication
+In short: An Admin can act on grid operational roles (Operators, Technicians) and consumers freely, but only a Super Admin can act on another Admin or Super Admin account.
+
+These operational interfaces live behind four clean management modules: **Grid Infrastructure Management**, **Maintenance Crew Dispatch**, **Consumer Wallet Operations**, and **Administrative Ledger Audit**.
+
+---
+
+## 3. Accounts and Authentication
 
 ### 3.1 Registration
 
-- **Patient** registers with name, email, and password — or with Google. Either way, they land in the system as a Patient; there is no way to register directly as anything else.
-- **Doctor** applies through a separate "apply to become a doctor" flow (see [Section 5](#5-doctor-application-and-approval)). They don't land in the system as a working Doctor until an Admin or Super Admin approves them.
-- **Admin** and **Super Admin** are never self-registered. They only come into existence when an existing Admin or Super Admin creates them (see [Section 4](#4-admin-and-super-admin-management)).
+- **Customer** registers with a name, email, and password — or with Google OAuth. Either way, they land in the system as a Customer; there is no way to register directly as an administrator or grid employee.
+- **Field Technicians and Operators** are introduced to the platform via back-office employee flows. They do not appear as valid system actors until an authorized manager instantiates their sub-profiles and binds them to a specific structural node (Zone or Substation).
+- **Admin and Super Admin** accounts are strictly provisioned by existing authorities through the internal administrative creation dashboard.
 
-### 3.2 Email OTP verification
+### 3.2 Two-Step Caching & Email OTP Verification
 
-Every registration that a person fills in themselves — patient credential registration and doctor application — must be verified with a one-time password (OTP) sent to their email before the account is usable. Google registration doesn't need this, since Google has already verified the email. Admin and Super Admin accounts skip OTP entirely, because they're created by someone else, not self-registered (see [Section 4](#4-admin-and-super-admin-management) for how those are secured instead).
+Every public self-registration (Customer credential signup) must be verified with a 6-digit one-time password (OTP) before the profile becomes usable. 
+- During registration, the payload is serialized and preserved inside a **Redis Cache Store** mapped to the generated OTP code sent to the consumer's inbox.
+- The record is only committed to the primary SQL database upon submission of a matching valid OTP token. Google registrations skip this step entirely, as the provider inherently guarantees identity verification.
+### 3.3 Login & Unified Consumer Identity
 
-### 3.3 Login
+- Customers log in with email/password or with Google — and it maps to the exact same account. A customer who originally registered via traditional credentials can seamlessly authenticate via Google later (matched dynamically by email), and vice versa; the backend prevents duplicate account generation.
+- Operational and administrative actors authenticate using email and password credentials exclusively.
 
-- Patients log in with email/password or with Google — and it's the same account either way. A patient who originally registered with email/password can also log in with Google afterward (matched by email), and vice versa; the system doesn't treat these as two separate patients.
-- Doctors, Admins, and Super Admins log in with email/password only — always.
+### 3.4 Token Issuance & Profile Aggregation (`getMe`)
 
-### 3.4 Forgot password / reset password
+- Every successful login or registration issues an encrypted **Access Token** and a long-lived **Refresh Token** delivered via secure HTTP-Only cookies to eliminate cross-site scripting vectors.
+- The profile retrieval route (`/getMe`) dynamically checks the active session's role and structural boundaries. It automatically returns the main `User` data merged with specialized data (e.g., wallet and area records for Customers, or active dispatch tickets for Technicians).
 
-Two-step flow, available to anyone who logs in with a password:
+### 3.5 Password Recovery & Settings Management
 
-1. **Forgot password** — patient submits their email; system emails them an OTP.
-2. **Reset password** — patient submits the OTP plus a new password; system verifies the OTP and updates the password.
+- **Forgot/Reset Password:** A two-step loop where the customer submits an email to receive a secure Redis-backed OTP, which they subsequently present alongside their new desired passphrase to overwrite old credentials.
+- **Change Password:** For logged-in users who verify their active identity by passing their **current password** before committing a **new password** to the system.
+- **Set Password (Google Signups Only):** A customer who onboarded purely via Google OAuth has no initial password. This feature allows them to initialize one, enabling subsequent dual-channel logins.
 
-### 3.5 Change password (logged in)
+---
 
-A logged-in user submits their **current password** and a **new password**. This is different from reset: it's for someone who remembers their current password and just wants to change it. Someone who's forgotten their current password uses forgot-password/reset-password instead — change-password is not a substitute for that flow.
+## 4. Grid Infrastructure Hierarchy
 
-### 3.6 Set password (patients only)
+The platform models the physical electricity grid using a rigid, cascade-deleting relational model where child entities cannot exist outside an established branch:
 
-A patient who first signed up through Google doesn't have a password yet — Google login never asks for one. **Set Password** lets that patient choose one, so afterward they can log in either way: with Google or with email/password. This feature exists only for patients, since Doctors, Admins, and Super Admins never use Google login and always have a password from the moment their account is created.
+### 4.1 Area Priority Metrics
+To facilitate smart automated rationing during production deficits, every instantiated `Area` must be explicitly tagged with a structural `AreaPriority` classification:
+- **`HOSPITAL`**: Healthcare networks requiring a near-zero load-shedding footprint.
+- **`VIP`**: Critical security or high-economic-value operational grids.
+- **`NORMAL`**: Standard residential and commercial networks.
 
-### 3.7 Tokens and sessions
+---
 
-Every successful login or registration — credential or Google, any role — issues an **access token** and a **refresh token**, both set as cookies.
+## 5. Outage Engine and Maintenance Tracking
 
-### 3.8 Welcome emails
+The platform isolates system power drops into two operational categories: **Scheduled Load Shedding** and **Unexpected Grid Outages**.
 
-| Event                                             | Recipient          | Contains                                                        |
-| --------------------------------------------------- | -------------------- | ------------------------------------------------------------------ |
-| Patient's first registration, right after auto-login | Patient's email       | Welcome message                                                    |
-| Doctor's application gets approved                    | Doctor's email        | Welcome message                                                    |
-| Admin or Super Admin gets created                     | Their **personal** email | Their new **organization** email (their login), their generated password, and a prompt to change that password after logging in |
+### 5.1 Unexpected Outages & Incident Deduplication
+When a field asset fails (e.g., localized line breaks, distribution transformer explosions), the system coordinates the emergency state using strict deduplication safeguards:
+1. A customer logs an incident report from their dashboard, adding an optional description of the failure.
+2. The system executes a defensive scan for any un-restored `UNEXPECTED` outage rows currently active within that customer’s assigned `Area`.
+3. If an un-restored outage is found, the system suppresses duplicate row generation in the core grid table and instead appends a new link record to the `OutageReport` logs, tracking consumer impact without cluttering database tables.
+### 5.2 Automated Dispatch and Conflict Prevention
+If the report represents a completely new grid breakdown event, a database transaction initializes to execute automated dispatch logic:
+1. The system reads the area's structural parent `DistributionZone` ID via an inverse relational path.
+2. It queries for a `Technician` profile attached to that specific zone whose current availability status is strictly set to **`AVAILABLE`**.
+3. If an available technician is found, the system enforces **Conflict Detection** by immediately committing three atomic updates:
+   - Locks the technician's status to **`ON_DUTY`** (preventing any alternative ticket assignment).
+   - Provisions an active `OutageAssignment` link node.
+   - Transitions the core grid outage status to **`ASSIGNED`**.
+4. If no technicians are free, the system catches the condition safely, transitioning the grid outage status to **`ACTIVE`** to flag it for manual operator dispatch.
 
-## 4. Admin and Super Admin management
+### 5.3 Restoration Tracking & Direct Resolution
+When a field technician rectifies the line fault, they close the task via a single button click on their field portal:
+1. The transaction automatically computes the absolute outage window by saving the precise system timestamp into the `endTime` field of the `Outage` row.
+2. The technician’s status immediately resets from `ON_DUTY` back to **`AVAILABLE`**, returning them to the active dispatch pool.
+3. The tracking ticket state transitions to **`RESTORED`**, updating all associated customer report nodes and automatically returning the area's live grid health status to normal on client dashboards.
 
-Only a Super Admin or an Admin can create a new Admin (a Super Admin can also create a new Super Admin — see the permissions table in [Section 2.1](#21-who-can-manage-whom)). The creator fills in two email addresses for the new account:
+---
 
-- **Organization email** — the account's login identity going forward, assigned by whoever creates the account (e.g. a company email).
-- **Personal email** — the actual person's own inbox, used only to deliver the welcome message.
+## 6. Smart Wallet and Utility Token Engine
 
-The system generates a password for the new account and sends it to the **personal** email inside the welcome email, along with the organization email and a prompt to change the password on first login. There is no self-registration and no OTP step for Admin or Super Admin accounts — the invite-and-generated-password flow, plus the forced password change, is what secures them instead.
+The system supports simulated prepaid smart grid account operations via card-based token architectures.
 
-## 5. Doctor application and approval
+### 6.1 Stripe Checkout Sessions
+Utility balance top-ups execute securely via hosted **Stripe Checkout Sessions**:
+1. A customer requests a balance recharge, passing a target monetary value (enforcing a minimum threshold of \$0.50 USD to comply with international processing limits).
+2. The system intercepts the request, maps the client's `userId` directly from the verified JWT header to enforce isolation, and provisions a unique Stripe session redirecting the client to an official checkout screen.
+3. Upon payment completion, Stripe redirects the transaction back to a secure verification callback on the application server.
 
-1. A prospective doctor applies through a public "apply to become a doctor" endpoint.
-2. As part of applying, they verify their email with an OTP — the same requirement as patient registration.
-3. Their application then sits pending in **Doctor Management**, reviewed by an Admin or Super Admin, who approves or rejects it.
-4. On approval, the doctor account becomes active, and a welcome email goes out. Only from this point can the doctor log in and use the platform — an unapproved application cannot log in at all.
+### 6.2 20-Digit Utility Token Generation (STS Emulation)
+To mirror the real-world operational realities of physical off-grid prepaid meters (which are completely offline and rely on Standard Transfer Specification encryption protocols), the application implements an **STS Token Simulation Loop**:
+1. Upon receiving a payment confirmation from the gate, the system **avoids** instantly updating the user's live database balance.
+2. Instead, it computes the exact net utility units purchased (deducting simulated local taxes or fixed maintenance fees) and invokes an algorithm that yields a randomized, cryptographically secured **20-Digit Utility Passcode** split into five blocks of four distinct digits (e.g., `4829-1029-4823-9923-1283`).
+3. This token is temporarily cached under the user's profile state as a pending transaction, and presented visually to the client as an un-punched utility code.
 
-## 6. Doctor schedules
-
-A schedule is what a doctor publishes to say "I'm available on this date, during this time range, book me." Each schedule is for **one calendar date** and belongs to **one doctor**.
-
-### 6.1 Creating a schedule
-
-| Rule                       | Detail                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| One schedule per day        | A doctor can have at most one schedule per calendar date.                                        |
-| Time range length            | Minimum 3 hours, maximum 8 hours.                                                                 |
-| Must stay within one day     | Start and end time must be on the same calendar date — e.g. `9:00 AM–5:00 PM` or `3:00 PM–11:00 PM` are fine, but a range like `9:00 PM–3:00 AM` (crossing into the next day) is not allowed. |
-| Meet link                    | The doctor provides a video call link — from whichever video call tool they use — as part of creating the schedule. Every appointment booked into that schedule uses this same link. |
-| Status                       | A schedule starts as **draft**. Patients cannot see it at all until the doctor **publishes** it. |
-| Total slots                  | Calculated automatically: the whole time range divided into 20-minute slots. Example: a `3:00 PM–9:00 PM` schedule is 6 hours (360 minutes), giving 18 slots of 20 minutes each. |
-
-### 6.2 Editing a published schedule
-
-Once published, different parts of a schedule lock at different points:
-
-| Field                          | Can it still be changed?                                                    |
-| --------------------------------- | ---------------------------------------------------------------------------- |
-| **Date**                          | No — locked as soon as the schedule is published.                            |
-| **Time range**                    | Yes, but only until the first appointment is booked into it. Once one slot is booked, the time range is locked (since re-slotting would break already-booked serial numbers). |
-| **Status, meet link, and everything else** | Yes, any time — booking a slot doesn't lock these.                   |
-
-## 7. Patient appointment booking
-
-### 7.1 What a patient can see
-
-Patients only ever see **today's** schedules — never a future date, and never a past one. Within today, a schedule is visible (and bookable) only up until its own start time:
-
-> Example: a schedule runs `3:00 PM–9:00 PM`. Before 3:00 PM, patients can see it and book into it. At 3:00 PM the schedule disappears from patient view — no more bookings, even though the consultations are still happening — and it will never reappear (it's not a future schedule anymore, it's today's, and today's window has closed).
-
-A schedule that's fully booked (every slot taken) also stops being shown, for the same reason — there's nothing left to book.
-
-### 7.2 Booking
-
-1. Patient picks an open slot on a visible schedule.
-2. Patient pays for it upfront.
-3. Once payment succeeds, the appointment is created with status **booked**, and it's given a **serial number** — its position among bookings in that schedule (the 1st person to book gets serial 1, the 2nd gets serial 2, and so on).
-4. An invoice PDF — meet link, date, time, and payment details — is emailed to the patient right after payment.
-
-## 8. Appointment lifecycle
-
-An appointment moves through three statuses:
-
-```
-booked  →  ongoing  →  completed
-```
-
-- **Booked** — set automatically once payment succeeds.
-- **Ongoing** — the doctor sets this manually when they start the consultation.
-- **Completed** — the doctor sets this manually when the consultation is finished.
-
-## 9. Prescriptions
-
-Once an appointment is **completed**, the doctor can write a prescription for it: key findings plus prescribed medicines. As soon as it's submitted, the system generates a PDF and emails it to the patient. A prescription can't be written for an appointment that isn't completed yet.
-
-## 10. Cancellation and refunds
-
-Whether a patient gets their money back depends on how close to the schedule's start time they cancel:
-
-| When the patient cancels                                                          | Refund? |
-| ------------------------------------------------------------------------------------- | :-------: |
-| More than 1 hour before the schedule's start time                                     | Yes — cancel and refund |
-| From 1 hour before the start time, through the running schedule, or after it's over    | Cancellation still allowed — no refund |
-
-> Example: schedule runs `3:00 PM–9:00 PM`. Cancelling any time before 2:00 PM refunds the payment. Cancelling from 2:00 PM onward — including during the 3–9 PM window itself, or even after 9 PM — still cancels the appointment, but without a refund.
-
-## 11. Data models (conceptual)
-
-The database design isn't finalized yet, so this is a description of what each model needs to hold — not a schema.
-
-- **User** — the shared identity for every role: email, password (nullable — a Google-only patient has none until they set one), linked Google account, role (`SUPER_ADMIN` / `ADMIN` / `DOCTOR` / `PATIENT`), account status (active/blocked), email-verified flag, and a "must change password" flag (used right after an Admin/Super Admin is created). Every account is exactly one User, linked to exactly one of the profiles below based on its role.
-- **Patient profile** — personal info plus medical info.
-- **Doctor profile** — personal info plus professional/expertise info (e.g. specialization).
-- **Admin profile** — personal info, plus the organization email assigned at creation. Shared shape for both Admin and Super Admin; the User's `role` field is what tells them apart.
+### 6.3 Meter Synchronization & Replay Protection
+1. To finalize the transfer of funds into their account, the Customer must copy the 20-digit string and input it into an interface simulating their physical meter keypad.
+2. The application verifies the passcode against the cached profile state. If the string contains an erroneous number, the system catches the error safely, triggering a strict validation exception.
+3. If the passcode matches perfectly, the simulated net funds are transferred to the customer's active wallet balance, and the token state is immediately changed to **`NULL` / Spent**. This provides absolute **Anti-Replay Protection**, ensuring the identical passcode can never be re-used to inflate balances.
