@@ -994,14 +994,29 @@ const forgotPassword = async (payload : IForgotPasswordPayload) => {
 
 	const html = await ejs.renderFile(tempatePath, templateData)
 
+	// await transporter.sendMail({
+	// 	from : config.email_sender,
+	// 	to : isUserExist.email,
+	// 	subject : "Forgot Password",
+	// 	// text : `Your OTP is ${otp}`
+	// 	// html: `<h1>Your OTP is ${otp}</h1>`
+	// 	html
+	// })
+
+  // ⚡ try-catch ব্লক দিয়ে নোডমেইলারকে র‍্যাপ করা হলো যেন মেইল ফেল করলেও সার্ভার ক্র্যাশ না করে [THE SAFETY SHIELD]
+try {
 	await transporter.sendMail({
-		from : config.email_sender,
-		to : isUserExist.email,
-		subject : "Forgot Password",
-		// text : `Your OTP is ${otp}`
-		// html: `<h1>Your OTP is ${otp}</h1>`
+		from: config.email_sender,
+		to: isUserExist.email,
+		subject: "Password Changed",
 		html
-	})
+	});
+	console.log(`✉️ Notification Email successfully sent to: ${isUserExist.email}`);
+} catch (mailError) {
+	// মেইল কানেকশন ইকোনমিক বা ETIMEDOUT এরর হলে সার্ভার এটি সেফলি হ্যান্ডেল করবে
+	console.log("⚠️ WARNING: Mail Server Timeout/Network Error caught safely! Express server will keep running.");
+}
+
 }
 
 
@@ -1068,14 +1083,29 @@ const resetPassword = async (payload : IResetPasswordPayload) => {
 	const html = await ejs.renderFile(tempatePath, templateData )
 
 
+	// await transporter.sendMail({
+	// 	from: config.email_sender,
+	// 	to: isUserExist.email,
+	// 	subject: "Password Changed",
+	// 	// text : `Your OTP is ${otp}`
+	// 	// html: `<h1>Your Password Is Changed</h1>`
+	// 	html
+	// })
+
+  // ⚡ try-catch ব্লক দিয়ে নোডমেইলারকে র‍্যাপ করা হলো যেন মেইল ফেল করলেও সার্ভার ক্র্যাশ না করে [THE SAFETY SHIELD]
+try {
 	await transporter.sendMail({
 		from: config.email_sender,
 		to: isUserExist.email,
 		subject: "Password Changed",
-		// text : `Your OTP is ${otp}`
-		// html: `<h1>Your Password Is Changed</h1>`
 		html
-	})
+	});
+	console.log(`✉️ Notification Email successfully sent to: ${isUserExist.email}`);
+} catch (mailError) {
+	// মেইল কানেকশন ইকোনমিক বা ETIMEDOUT এরর হলে সার্ভার এটি সেফলি হ্যান্ডেল করবে
+	console.log("⚠️ WARNING: Mail Server Timeout/Network Error caught safely! Express server will keep running.");
+}
+
 }
 
 export const AuthService = {
